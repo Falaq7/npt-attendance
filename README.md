@@ -4,7 +4,7 @@ Session manager, registration forms and first-name attendance check-in.
 
 ## Status
 
-Source prepared for a new GitHub repository. Repository creation and hosting migration are not complete. Microsoft Forms / live Excel integration is not implemented.
+Source uploaded to the private Falaq7/npt-attendance repository. Hosting migration is not complete; the original website remains live. Microsoft Forms / live Excel integration is not implemented.
 
 ## Checks
 
