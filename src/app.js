@@ -1,4 +1,4 @@
-const boneIcon="<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\" fill=\"none\"><path d=\"M10.1 6.1a4 4 0 0 0-6 5.2 4 4 0 0 0 5.8 5.4l5.4 5.4a4 4 0 0 0 5.4 5.8 4 4 0 0 0 5.2-6l-4.1-4.1-7.6-7.6-4.1-4.1Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"round\"/><path d=\"m10 16 6-6m0 12 6-6\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>";
+const boneIcon="<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\" fill=\"currentColor\"><g transform=\"rotate(-38 16 16)\"><path d=\"M9 12h14c1-3 3-4 5-3s3 4 1 7c2 3 1 6-1 7s-4 0-5-3H9c-1 3-3 4-5 3s-3-4-1-7c-2-3-1-6 1-7s4 0 5 3Z\"/></g></svg>";
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let key=localStorage.getItem('npt-admin-key');if(!key){key=crypto.randomUUID()+crypto.randomUUID();localStorage.setItem('npt-admin-key',key)}
 let sessions=[],active=null,records=[],demo=false,filter='all',month='',query='';const app=$('#app');
