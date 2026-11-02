@@ -11,6 +11,14 @@ const application={async fetch(req,env){try{
  const session=async id=>{const s=await read('session/'+id);if(!s)return null;const people=new Map((s.people||[]).map(p=>[norm(p.id),p]));for(const prefix of ['registration/','person/'])for(const person of await list(prefix+id+'/'))people.set(norm(person.id),person);return {...s,people:[...people.values()].filter(p=>!p.removed),removedPeople:[...people.values()].filter(p=>p.removed)}};
  const checks=async id=>(await list('check/'+id+'/')).filter(r=>!r.inactive);
  const sha=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),x=>x.toString(16).padStart(2,'0')).join('');
+ if(p==='/api/excel/feed'&&req.method==='GET'){
+  const secret=u.searchParams.get('token');if(!env.EXCEL_FEED_TOKEN||!secret||await sha(secret)!==await sha(env.EXCEL_FEED_TOKEN))return json({error:'Not found.'},404);
+  const refs=await list('owner/anatomy/'),sessions=[];
+  for(const ref of refs){const s=await session(ref.id||ref._key.split('/').pop());if(!s||s.archived)continue;const records=await checks(s.id);sessions.push({id:s.id,title:s.title,label:s.label||'',date:s.date,time:s.time||'',people:s.people.map(p=>({firstName:firstOf(p),registeredAt:p.registeredAt||'',checkInAt:records.find(c=>norm(c.id)===norm(p.id))?.time||''}))})}
+  sessions.sort((a,b)=>a.date.localeCompare(b.date)||a.title.localeCompare(b.title));
+  const capturedAt=new Date().toISOString(),payload=JSON.stringify({version:1,capturedAt,sessions}),escape=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return new Response('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Anatomy register</title><link>https://falaq7.github.io/npt-attendance/</link><description>Private register sync</description><item><title>Register snapshot</title><guid isPermaLink="false">'+capturedAt+'</guid><pubDate>'+new Date(capturedAt).toUTCString()+'</pubDate><description>'+escape(payload)+'</description></item></channel></rss>',{headers:{'content-type':'application/rss+xml;charset=utf-8','cache-control':'no-store','referrer-policy':'no-referrer'}});
+ }
  if(p==='/api/auth/login'&&req.method==='POST'){
   if(!env.MANAGER_PASSWORD)return json({error:'Manager sign-in is not configured.'},503);
   const ip=await sha(req.headers.get('cf-connecting-ip')||'local'),attemptKey='auth/attempt/'+ip,now=Date.now(),prior=await read(attemptKey);const attempt=prior&&prior.until>now?prior:{count:0,until:now+900000};if(attempt.count>=10)return json({error:'Too many attempts. Try again in 15 minutes.'},429);
