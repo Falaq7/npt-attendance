@@ -1,6 +1,6 @@
 # NPT Attendance
 
-Session dates, registration forms and first-name attendance check-in.
+Session dates, registration forms and first-name registration and attendance check-in.
 
 ## Hosting
 
@@ -8,7 +8,7 @@ Session dates, registration forms and first-name attendance check-in.
 - API: https://npt-attendance-api.mahmoodfalaq.workers.dev
 - Storage: private Cloudflare D1 database, bound as DB.
 
-The repository contains application code only. Names, emails, manager keys and attendance records must never be committed. The register API requires a manager access key and limits each key to its own workspace. Public session endpoints return session details, not participant lists. Students use per-session registration and check-in links.
+The repository contains application code only. Names, passwords, sign-in tokens and attendance records must never be committed. The register API requires a valid manager sign-in token. All authenticated managers see the same anatomy register. The shared password is stored in the Cloudflare MANAGER_PASSWORD secret, never in this repository. Public session endpoints return session details, not participant lists. Students use per-session registration and check-in links.
 
 ## Features
 
@@ -28,7 +28,9 @@ GitHub Pages allows public access to the frontend; it contains no attendance dat
 
 ## Manager access
 
-The first visit creates a random workspace key in the browser. Save it privately from Settings & access. To use the same workspace on another browser, enter that key there. Anyone with a workspace key can manage that workspace's register. The key is not a GitHub or Microsoft credential.
+Sign in on the website using the shared manager password. Sessions expire after 12 hours and are invalidated on sign-out. Failed sign-in attempts are limited. Registration and check-in QR links remain public and ask only for first name. First login imports any previous register owned by that browser using its existing legacy access proof, then removes the old key from the browser.
+
+Managers can edit first names, correct attendance, delete or restore entries, and delete or restore sessions. Deleted sessions close both registration and check-in. Restored sessions stay closed until reopened.
 
 ## Limitations
 
