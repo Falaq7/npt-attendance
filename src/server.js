@@ -42,6 +42,7 @@ const application={async fetch(req,env){try{
  const token=req.headers.get('authorization')?.replace(/^Bearer /,'');const auth=token&&await read('auth/session/'+await sha(token));if(!auth||auth.expires<Date.now())return json({error:'Please sign in.'},401);
  if(p==='/api/auth/logout'&&req.method==='POST'){await b.put('auth/session/'+await sha(token),JSON.stringify({expires:0}));return json({signedOut:true})}
  const owner='anatomy';
+ if(p==='/api/excel'&&req.method==='GET')return json({connected:!!env.EXCEL_WORKBOOK_URL,workbookUrl:env.EXCEL_WORKBOOK_URL||'',intervalMinutes:1});
  if(p==='/api/sessions'&&req.method==='GET'){const refs=await list('owner/'+owner+'/');const sessions=await Promise.all(refs.map(r=>session(r.id||r._key.split('/').pop())));return json(sessions.filter(Boolean))}
  if(p==='/api/sessions'&&req.method==='POST'){
   const d=await req.json();if(!String(d.title||'').trim()||!validDate(d.date)||!Array.isArray(d.people)||d.people.length>2000)return json({error:'Enter a session name and valid date.'},400);
