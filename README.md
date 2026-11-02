@@ -1,25 +1,35 @@
 # NPT Attendance
 
-Session manager, registration forms and first-name attendance check-in.
-
-## Status
-
-Source uploaded to the private Falaq7/npt-attendance repository. Hosting migration is not complete; the original website remains live. Microsoft Forms / live Excel integration is not implemented.
-
-## Checks
-
-Requires Node.js 22 or later. Run npm run build, npm test, and npm run validate. No dependency installation is needed for checks.
+Session dates, registration forms and first-name attendance check-in.
 
 ## Hosting
 
-This app uses a server-side Cloudflare Worker and an R2 bucket. GitHub Pages alone cannot run the shared register backend. Publishing the current HTML to Pages without an API service would break registration and check-in. Do not store attendee records or access keys in GitHub.
+- Website: https://falaq7.github.io/npt-attendance/ (GitHub Pages)
+- API: https://npt-attendance-api.mahmoodfalaq.workers.dev
+- Storage: private Cloudflare D1 database, bound as DB.
 
-A standalone Cloudflare configuration is included to remove the dependency on chatgpt.site while keeping source on GitHub. This requires a Cloudflare account with R2 enabled. Deploying it provisions a separate database bucket; existing hosted records are not automatically migrated.
+The repository contains application code only. Names, emails, manager keys and attendance records must never be committed. The register API requires a manager access key and limits each key to its own workspace. Public session endpoints return session details, not participant lists. Students use per-session registration and check-in links.
 
-After account setup: install development dependencies, sign into Wrangler, create the npt-attendance R2 bucket, and run npm run deploy. Configure manager access and migrate any existing records before directing students to the new URL. The existing Site access gate is not part of a standalone deployment.
+## Features
 
-To use GitHub Pages for the frontend specifically, the frontend API base URL, cross-origin permissions and backend hosting must be configured before enabling Pages. This repository intentionally does not publish a nonfunctional static copy.
+Named dates, session filters, separate registers, registration and classroom QR codes, first-name check-in, preserved first check-in timestamps, CSV import/export, dark/light themes and a bone icon.
 
-## Editing
+## Development
 
-Edit src/app.js, src/page.html and src/server.js. npm run build generates worker/index.js and dist. Each session date has a separate register. CSV exports open in Excel; they are not live workbook connections.
+Requires Node.js 24 or later. Build with npm run build. Run npm test and node scripts/test-d1.mjs. The latter tests the database adapter against SQLite. npm run build:pages creates the static website in public; set NPT_API_BASE to the API origin when building for GitHub Pages.
+
+Edit src/app.js and src/page.html for the frontend, src/theme.css for the design reference, and src/server.js for the API. The compiled Worker is worker/index.js. The source HTML includes the current CSS, so update its style block when changing theme.css.
+
+## Deployment
+
+Website changes deploy through the Publish website workflow on main. Backend changes require a signed-in Cloudflare deployment: npm run build, then npx wrangler deploy. wrangler.jsonc binds the existing D1 database. migrations/0001_records.sql defines the records table. Apply new schema migrations before deploying code that depends on them.
+
+GitHub Pages allows public access to the frontend; it contains no attendance data. Backend responses are not cached. CORS is limited to the GitHub Pages origin and the API's own origin.
+
+## Manager access
+
+The first visit creates a random workspace key in the browser. Save it privately from Settings & access. To use the same workspace on another browser, enter that key there. Anyone with a workspace key can manage that workspace's register. The key is not a GitHub or Microsoft credential.
+
+## Limitations
+
+Microsoft Forms and live Excel workbook sync are not connected. CSV exports can be opened in Excel. Records on the original chatgpt.site deployment remain separate and are not automatically copied to this database. Student check-in uses first names only, as requested.

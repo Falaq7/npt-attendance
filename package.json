@@ -7,7 +7,8 @@
     "build": "node scripts/build.mjs",
     "test": "node scripts/test.mjs",
     "validate": "node scripts/validate-artifact.mjs",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "build:pages": "node scripts/build-pages.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

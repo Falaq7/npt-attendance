@@ -1,11 +1,16 @@
 {
-  "name": "npt-attendance",
+  "name": "npt-attendance-api",
   "main": "worker/index.js",
   "compatibility_date": "2026-11-02",
-  "r2_buckets": [
+  "vars": {
+    "ALLOWED_ORIGINS": "https://falaq7.github.io"
+  },
+  "d1_databases": [
     {
-      "binding": "BUCKET",
-      "bucket_name": "npt-attendance"
+      "binding": "DB",
+      "database_name": "npt-attendance",
+      "database_id": "39720fc1-d668-4498-8ef8-4afad648632b",
+      "migrations_dir": "migrations"
     }
   ]
 }

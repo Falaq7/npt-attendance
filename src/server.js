@@ -1,11 +1,11 @@
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const norm=s=>String(s||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('en-GB');
 const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(Date.parse(s));
-export default {async fetch(req,env){try{
+const application={async fetch(req,env){try{
  const u=new URL(req.url),p=u.pathname;
  if(!p.startsWith('/api/'))return new Response(HTML,{headers:{'content-type':'text/html;charset=utf-8','cache-control':'no-store','referrer-policy':'same-origin'}});
- if(req.method!=='GET'&&req.headers.get('origin')&&req.headers.get('origin')!==u.origin)return json({error:'Invalid request origin.'},403);
- const b=env.BUCKET;if(!b)return json({error:'Storage is unavailable.'},503);
+ 
+ const b=env.BUCKET||(env.DB?databaseStore(env.DB):null);if(!b)return json({error:'Storage is unavailable.'},503);
  const read=async k=>{const o=await b.get(k);return o?o.json():null};
  const list=async prefix=>{let objects=[],cursor;do{const page=await b.list({prefix,cursor});objects.push(...page.objects);cursor=page.truncated?page.cursor:undefined}while(cursor);return Promise.all(objects.map(async o=>({...await read(o.key),_key:o.key})))};
  const session=async id=>{const s=await read('session/'+id);if(!s)return null;const registered=await list('registration/'+id+'/');const people=new Map((s.people||[]).map(p=>[norm(p.id),p]));for(const p of registered)if(!people.has(norm(p.id)))people.set(norm(p.id),p);return {...s,people:[...people.values()]}};
@@ -32,3 +32,6 @@ export default {async fetch(req,env){try{
  s=await session(s.id);return json({...s,records:await list('check/'+s.id+'/')})}
  return json({error:'Not found.'},404)
  }catch(e){return json({error:'Request failed. Please try again.'},500)}}};
+
+function databaseStore(db){return {async get(key){const row=await db.prepare('SELECT value FROM records WHERE key = ?').bind(key).first();return row?{json:async()=>JSON.parse(row.value)}:null},async put(key,value,options){if(options?.onlyIf){return db.prepare('INSERT OR IGNORE INTO records (key,value) VALUES (?,?)').bind(key,value).run()}return db.prepare('INSERT INTO records (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind(key,value).run()},async list({prefix,cursor}){const rows=await db.prepare('SELECT key FROM records WHERE key >= ? AND key < ? AND key > ? ORDER BY key LIMIT 1000').bind(prefix,prefix+'\uffff',cursor||'').all();return {objects:rows.results,truncated:rows.results.length===1000,cursor:rows.results.at(-1)?.key}}}}
+export default {async fetch(request,env){const origin=request.headers.get('origin');const allowed=(env.ALLOWED_ORIGINS||'https://falaq7.github.io').split(',').map(x=>x.trim());const own=new URL(request.url).origin;if(origin&&origin!==own&&!allowed.includes(origin))return json({error:'Origin not allowed.'},403);if(request.headers.get('content-length')&&Number(request.headers.get('content-length'))>1048576)return json({error:'Request too large.'},413);const cors={'access-control-allow-origin':origin||allowed[0],'access-control-allow-methods':'GET,POST,PATCH,OPTIONS','access-control-allow-headers':'content-type,x-admin-key','vary':'Origin','cache-control':'no-store'};if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors});let response;if(new URL(request.url).pathname==='/api/health'){try{if(env.DB)await env.DB.prepare('SELECT key FROM records LIMIT 1').first();if(!env.DB&&!env.BUCKET)throw Error();response=json({status:'ok'})}catch(e){response=json({error:'Database is not ready.'},503)}}else response=await application.fetch(request,env);const headers=new Headers(response.headers);for(const [k,v] of Object.entries(cors))headers.set(k,v);headers.set('x-content-type-options','nosniff');return new Response(response.body,{status:response.status,headers})}};
