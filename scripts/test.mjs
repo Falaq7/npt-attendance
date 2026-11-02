@@ -1,0 +1,24 @@
+import fs from 'node:fs/promises';import assert from 'node:assert/strict';
+const source=await fs.readFile('worker/index.js','utf8');const {default:w}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));const values=new Map();const env={BUCKET:{get:async k=>values.has(k)?{json:async()=>JSON.parse(values.get(k))}:null,put:async(k,v,opts)=>{if(opts?.onlyIf&&values.has(k))return null;values.set(k,v);return {}},list:async({prefix})=>({objects:[...values.keys()].filter(k=>k.startsWith(prefix)).map(key=>({key}))})}};
+const key='test-admin-key-with-more-than-thirty-characters';const call=async(p,method='GET',data,auth=key)=>{const r=await w.fetch(new Request('https://test/api/'+p,{method,headers:{'x-admin-key':auth},body:data?JSON.stringify(data):undefined}),env);return {status:r.status,data:await r.json()}};
+let r=await call('sessions','POST',{title:'NPT teaching',label:'Cardiology · Week 3',date:'2026-11-02',people:[]});assert.equal(r.status,200);const id=r.data.id;
+assert.equal((await call('sessions')).data[0].label,'Cardiology · Week 3');
+assert.equal((await call('register','POST',{session:id,firstName:'Aisha',email:'aisha@example.com'},'')).status,200);
+assert.equal((await call('register','POST',{session:id,firstName:'Aisha',email:'aisha@example.com'},'')).status,200);
+assert.equal((await call('sessions/'+id)).data.people.length,1);
+assert.equal((await call('checkin','POST',{session:id,firstName:'Aisha'},'')).status,400);
+await call('sessions/'+id,'PATCH',{open:true});
+const check=await call('checkin','POST',{session:id,firstName:' aIsHa '},'');assert.equal(check.status,200);assert.equal(check.data.name,'Aisha');
+assert.equal((await call('checkin','POST',{session:id,firstName:'Aisha'},'')).data.time,check.data.time);
+assert.equal((await call('checkin','POST',{session:id,firstName:'unknown'},'')).status,404);
+await call('sessions/'+id,'PATCH',{label:'Renamed date',date:'2026-11-05'});r=await call('sessions/'+id);assert.equal(r.data.label,'Renamed date');assert.equal(r.data.open,true);assert.equal(r.data.records.length,1);
+await call('sessions/'+id,'PATCH',{people:[{name:'Daniel',id:'NPT002'}]});assert.equal((await call('sessions/'+id)).data.people.length,2);
+assert.equal((await call('checkin','POST',{session:id,firstName:'Daniel'},'')).status,200);
+assert.equal((await call('sessions/'+id,'GET',null,'a-different-key-with-more-than-thirty-characters')).status,404);
+await call('sessions/'+id,'PATCH',{registrationOpen:false});assert.equal((await call('register','POST',{session:id,firstName:'Sarah',email:'sarah@example.com'},'')).status,400);
+const pub=await call('public/'+id,'GET',null,'');assert.equal(pub.data.people,undefined);assert.equal(pub.data.owner,undefined);
+await call('sessions/'+id,'PATCH',{open:false});assert.equal((await call('checkin','POST',{session:id,firstName:'Aisha'},'')).status,400);
+// Existing registers used empty owner references. They must remain visible.
+for(const [k,v] of values)if(k.startsWith('owner/'))values.set(k,'{}');assert.equal((await call('sessions')).data.length,1);
+const html=await (await w.fetch(new Request('https://test/'),env)).text();new Function(html.split('<script>')[1].split('</script>')[0]);assert.ok(!html.includes('Everyone counted'));assert.ok(!html.includes('lastName'));
+console.log('Passed: empty session, registration, duplicate submission, first-name check-in, timestamps, date edits, CSV merge, closed registration/check-in, access isolation and legacy register compatibility.');
